@@ -1,5 +1,7 @@
+
 import express from 'express';
 import http from 'http';
+import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
@@ -18,7 +20,7 @@ import { validateCopilotText } from './src/services/validatorService.ts';
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 
@@ -303,18 +305,24 @@ function generateFallbackAnswer(prompt: string, language: string, data: Record<s
     : `Summary for the 26 August 2026 event: 24.0 km² total hazard area mapped from orbit, 7 severed bridges, 38.4 km submerged road, 312 impacted buildings, and 7 cut-off settlements isolating 8640 residents.`;
 }
 
-// Mount Vite middleware in development
+// Dev: Vite middleware. Production: serve the built dist/ folder.
 async function startServer() {
   const httpServer = http.createServer(app);
 
-  const vite = await createViteServer({
-    server: {
-      middlewareMode: true,
-      hmr: process.env.DISABLE_HMR === 'true' ? false : { server: httpServer },
-    },
-    appType: 'spa',
-  });
-  app.use(vite.middlewares);
+  if (process.env.NODE_ENV === 'production') {
+    const dist = path.join(process.cwd(), 'dist');
+    app.use(express.static(dist));
+    app.get('*', (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+  } else {
+    const vite = await createViteServer({
+      server: {
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === 'true' ? false : { server: httpServer },
+      },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  }
 
   httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`SETU Full-Stack Server active on http://0.0.0.0:${PORT}`);
