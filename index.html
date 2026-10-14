@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Embedded runtime resilience: prevent unhandled websocket teardowns from interrupting UI
+      window.addEventListener('unhandledrejection', function(event) {
+        if (!event.reason) { event.preventDefault(); return; }
+        var reasonStr = (event.reason.message || event.reason.stack || String(event.reason)).toLowerCase();
+        if (
+          reasonStr.includes('websocket') ||
+          reasonStr.includes('vite') ||
+          reasonStr.includes('failed to fetch') ||
+          reasonStr.includes('networkerror')
+        ) {
+          event.preventDefault();
+        }
+      });
+      window.addEventListener('error', function(event) {
+        var msg = (event.message || '').toLowerCase();
+        var file = (event.filename || '').toLowerCase();
+        if (
+          msg.includes('websocket') ||
+          msg.includes('vite') ||
+          msg.includes('ws') ||
+          file.includes('@vite/client') ||
+          file.includes('vite')
+        ) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          return true;
+        }
+      }, true);
+    </script>
+    <title>SETU: Satellite Emergency Triage for Unreachable Villages</title>
+    <meta name="description" content="Rapid satellite disaster triage system for mountain flood emergencies, featuring Sentinel-1 SAR change detection, road graph cut-off settlement analysis, upstream DEM flow tracing, and a validated bilingual situation-report copilot." />
+    <meta property="og:title" content="SETU: Satellite Emergency Triage for Unreachable Villages" />
+    <meta property="og:description" content="Rapid satellite disaster triage system for mountain flood emergencies, featuring Sentinel-1 SAR change detection, road graph cut-off settlement analysis, upstream DEM flow tracing, and a validated bilingual situation-report copilot." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#FCFAF7] text-[#423D38] antialiased selection:bg-[#FE6E00]/30 selection:text-[#FE6E00]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
