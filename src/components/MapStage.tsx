@@ -30,6 +30,7 @@ import {
   FeltStickyNote,
   FeltMeasureSegment,
   FeltCollaborator,
+  SatelliteOrbitPair,
 } from '../types/setu.ts';
 import {
   CORRIDOR_BBOX as BBOX,
@@ -54,6 +55,8 @@ import { FeltLayersPalette, LayerState } from './map/FeltLayersPalette.tsx';
 import { FeltShareModal } from './map/FeltShareModal.tsx';
 import { FeltStickyNoteModal } from './map/FeltStickyNoteModal.tsx';
 import { FeltMeasureCard } from './map/FeltMeasureCard.tsx';
+import { CompareSlider } from './map/CompareSlider.tsx';
+import { formatRadarDate, percentToViewBoxX } from '../utils/compareUtils.ts';
 
 interface MapStageProps {
   settlements: Settlement[];
@@ -63,6 +66,8 @@ interface MapStageProps {
   flowTrace: FlowTraceResult | null;
   radarConfidence?: number;
   slopeThreshold?: number;
+  /** Radar acquisition dates for the Compare view. */
+  orbitPair?: SatelliteOrbitPair;
   onSelectSettlement: (s: Settlement) => void;
   onSelectBridge: (b: DamagedBridge) => void;
   onTriggerTrace: (lat: number, lng: number) => void;
@@ -79,6 +84,7 @@ export const MapStage: React.FC<MapStageProps> = ({
   flowTrace,
   radarConfidence = 0.65,
   slopeThreshold = 15.0,
+  orbitPair,
   onSelectSettlement,
   onSelectBridge,
   onTriggerTrace,
@@ -165,6 +171,32 @@ export const MapStage: React.FC<MapStageProps> = ({
   } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Compare view: the divider is fixed on screen, so the SVG clip edge has to follow pan, zoom and resize.
+  const [viewSize, setViewSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!splitSwipeMode || !el) return;
+    const measure = () => setViewSize({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [splitSwipeMode]);
+
+  const compareClipX =
+    splitSwipeMode && viewSize.w > 0 && viewSize.h > 0
+      ? percentToViewBoxX(splitPosition, {
+          width: viewSize.w,
+          height: viewSize.h,
+          viewWidth: VIEW_WIDTH,
+          viewHeight: VIEW_HEIGHT,
+          zoom,
+          panX: pan.x,
+        })
+      : null;
+  // Only the post-event flood footprint is clipped away on the "before" (left) side.
+  const afterOnlyClip = compareClipX !== null ? 'url(#compareAfterClip)' : undefined;
 
   // Track latency adjustments
   useEffect(() => {
@@ -616,12 +648,17 @@ export const MapStage: React.FC<MapStageProps> = ({
       {/* 6. SVG Canvas Map */}
       <svg
         viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
-        className="w-full h-full transition-transform duration-75 origin-top-left"
+        className={`w-full h-full origin-top-left ${splitSwipeMode ? '' : 'transition-transform duration-75'}`}
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
         }}
       >
         <defs>
+          {compareClipX !== null && (
+            <clipPath id="compareAfterClip">
+              <rect x={compareClipX} y={-100000} width={200000} height={200000} />
+            </clipPath>
+          )}
           <pattern id="topoGrid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path
               d="M 40 0 L 0 0 0 40"
@@ -702,6 +739,8 @@ export const MapStage: React.FC<MapStageProps> = ({
           opacity="0.95"
         />
 
+        {/* 3-4. Post-event flood footprint (SAR heatmap + hazard polygons); clipped to the "after" side in Compare view */}
+        <g clipPath={afterOnlyClip}>
         {/* 3. Sentinel-1 SAR Radar Inundation Heatmap */}
         {layerState.sarHeatmap && (
           <g opacity={layerState.sarOpacity} className="transition-opacity">
@@ -736,6 +775,7 @@ export const MapStage: React.FC<MapStageProps> = ({
               </g>
             );
           })}
+        </g>
 
         {/* 5. Upstream DEM Flow Tracer Vector */}
         {layerState.hydrologyTracer && flowTrace && (
@@ -1330,27 +1370,14 @@ export const MapStage: React.FC<MapStageProps> = ({
         />
       </div>
 
-      {/* Split Comparison Slider Overlay */}
+      {/* Before / After comparison: left = before the event, right = post-event flood footprint */}
       {splitSwipeMode && (
-        <div
-          className="absolute inset-y-0 pointer-events-none border-r-2 border-[#FE6E00] z-10"
-          style={{ left: `${splitPosition}%` }}
-        >
-          <div className="absolute top-20 -left-28 px-2.5 py-1 bg-black/80 backdrop-blur-[12px] border border-white/20 text-white text-[10px] font-mono rounded-lg shadow-lg">
-            PRE (14 Aug Baseline)
-          </div>
-          <div className="absolute top-20 left-2 px-2.5 py-1 bg-[#FE6E00] border border-[#FF6B00] text-white text-[10px] font-mono font-bold rounded-lg shadow-lg">
-            POST (26 Aug Radar Inundation)
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={splitPosition}
-            onChange={(e) => setSplitPosition(Number(e.target.value))}
-            className="absolute top-1/2 -left-20 w-40 pointer-events-auto opacity-80 accent-[#FE6E00] cursor-ew-resize"
-          />
-        </div>
+        <CompareSlider
+          position={splitPosition}
+          onChange={setSplitPosition}
+          beforeDate={orbitPair ? formatRadarDate(orbitPair.preEventDate) : undefined}
+          afterDate={orbitPair ? formatRadarDate(orbitPair.postEventDate) : undefined}
+        />
       )}
 
       {/* FELT SCALE BAR & COORDINATES PILL (Bottom Left) */}
