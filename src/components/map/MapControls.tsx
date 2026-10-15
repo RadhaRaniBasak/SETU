@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Waves, Eye } from 'lucide-react';
 
@@ -21,7 +22,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
   onToggleSplitSwipe,
 }) => {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       <div
         className="flex items-center bg-black/70 backdrop-blur-[12px] border border-white/10 rounded-xl p-1 shadow-lg text-white"
         role="toolbar"
@@ -76,7 +77,7 @@ export const MapControls: React.FC<MapControlsProps> = ({
         }`}
       >
         <Eye className="w-4 h-4" aria-hidden="true" />
-        <span>{splitSwipeMode ? 'Exit Split View' : 'Split Pre/Post'}</span>
+        <span>{splitSwipeMode ? 'Exit Compare' : 'Compare'}</span>
       </button>
     </div>
   );
