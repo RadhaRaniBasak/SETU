@@ -152,9 +152,9 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* Render Tabs */}
         {activeTab === 'map' && (
-          <>
+          <div className="flex flex-col lg:flex-row flex-1 min-w-0 overflow-y-auto lg:overflow-hidden">
             {/* Left Control & Mission Parameters Panel: Dark Frosted Shell Sidebar */}
-            <aside className="w-72 lg:w-80 bg-black/70 backdrop-blur-[12px] border-r border-white/10 text-white flex flex-col justify-between overflow-y-auto shrink-0 z-10 select-none">
+            <aside className="w-72 lg:w-80 max-lg:w-full bg-black/70 backdrop-blur-[12px] border-r border-white/10 text-white flex flex-col justify-between overflow-y-auto shrink-0 z-10 select-none">
               <div className="p-4 space-y-4">
                 {/* Active Scenario Card */}
                 <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
@@ -349,7 +349,7 @@ export default function App() {
             </aside>
 
             {/* Center Stage: Interactive GIS Map Canvas */}
-            <main className="flex-1 relative h-full">
+            <main className="flex-1 relative h-full max-lg:flex-none max-lg:order-first max-lg:h-[70vh]">
               <MapStage
                 settlements={settlements}
                 damagedBridges={bridges}
@@ -358,6 +358,7 @@ export default function App() {
                 flowTrace={flowTrace}
                 radarConfidence={radarConfidence}
                 slopeThreshold={slopeThreshold}
+                orbitPair={activeScenario.orbitPair}
                 onSelectSettlement={handleSelectSettlement}
                 onSelectBridge={handleSelectBridge}
                 onTriggerTrace={handleTriggerTrace}
@@ -379,7 +380,7 @@ export default function App() {
             </main>
 
             {/* Right Workstation Column (380px): Warm Document Workspace with Triage Queue or Copilot */}
-            <aside className="w-96 border-l border-[#E3E0DD] bg-[#FCFAF7] flex flex-col shrink-0 z-10 shadow-sm">
+            <aside className="w-96 max-lg:w-full max-lg:h-[80vh] border-l border-[#E3E0DD] bg-[#FCFAF7] flex flex-col shrink-0 z-10 shadow-sm">
               {/* Tray Switcher Bar */}
               <div className="flex border-b border-[#E3E0DD] bg-[#F3F4F6] p-1.5 gap-1.5">
                 <button
@@ -421,7 +422,7 @@ export default function App() {
                 )}
               </div>
             </aside>
-          </>
+          </div>
         )}
 
         {/* Tab 2: Full Cut-off Villages View */}
